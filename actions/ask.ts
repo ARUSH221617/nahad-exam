@@ -1,7 +1,7 @@
-'use server';
+"use server";
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import prisma from '@/lib/prisma';
+import { GoogleGenAI, ThinkingLevel } from "@google/genai";
+import prisma from "@/lib/prisma";
 
 // Simple in-memory mock for vector store if DB is not available
 // In a real app, this would be pgvector
@@ -11,39 +11,56 @@ import prisma from '@/lib/prisma';
 
 // Let's assume we have a retrieval function.
 
-export async function askQuestion(docId: string, question: string, history: { role: string, parts: string[] }[]) {
-    // 1. Retrieve context
-    // In a real implementation:
-    //  - Embed question
-    //  - Search pgvector for docId
-    //  - Get top k chunks
+export async function askQuestion(
+  docId: string,
+  question: string,
+  history: { role: string; parts: string[] }[]
+) {
+  // 1. Retrieve context
+  // In a real implementation:
+  //  - Embed question
+  //  - Search pgvector for docId
+  //  - Get top k chunks
 
-    // MOCK Retrieval for Sandbox:
-    // We don't have the PDF content here easily unless we read it again or stored it.
-    // For this prototype, let's assume we can answer generic questions or we Mock the context.
-    // OR we fetch the blob text (if we stored it).
+  // MOCK Retrieval for Sandbox:
+  // We don't have the PDF content here easily unless we read it again or stored it.
+  // For this prototype, let's assume we can answer generic questions or we Mock the context.
+  // OR we fetch the blob text (if we stored it).
 
-    // Let's try to get the document from Prisma
-    const doc = await prisma.document.findUnique({
-        where: { id: docId }
-    });
+  // Let's try to get the document from Prisma
+  const doc = await prisma.document.findUnique({
+    where: { id: docId },
+  });
 
-    if (!doc) throw new Error("Document not found");
+  if (!doc) throw new Error("Document not found");
 
-    // SIMULATED CONTEXT:
-    // In a real app, we would do: const context = await searchVectors(doc.vectorNamespace, question);
-    const context = "This is a simulated context from the document. The document discusses Nahad exam topics.";
+  // SIMULATED CONTEXT:
+  // In a real app, we would do: const context = await searchVectors(doc.vectorNamespace, question);
+  const context =
+    "This is a simulated context from the document. The document discusses Nahad exam topics.";
 
-    // 2. Generate Answer
-    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-    if (!apiKey) {
-        return { answer: "Error: API Key not found. Please set GOOGLE_GENERATIVE_AI_API_KEY.", references: [] };
-    }
+  // 2. Generate Answer
+  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+  if (!apiKey) {
+    return {
+      answer:
+        "Error: API Key not found. Please set GOOGLE_GENERATIVE_AI_API_KEY.",
+      references: [],
+    };
+  }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-3.0-flash" });
+  const ai = new GoogleGenAI({
+    apiKey: process.env.GEMINI_API_KEY,
+  });
 
-    const prompt = `You are an expert in Nahad exams. Using ONLY the provided context from the PDF, answer the multiple-choice or descriptive question.
+  const config = {
+    thinkingConfig: {
+      thinkingLevel: ThinkingLevel.MEDIUM,
+    },
+  };
+  const model = "gemini-3-flash-preview";
+
+  const prompt = `You are an expert in Nahad exams. Using ONLY the provided context from the PDF, answer the multiple-choice or descriptive question.
     If the answer is not in the context, say "پاسخ در متن یافت نشد".
 
     Context: ${context}
@@ -52,20 +69,37 @@ export async function askQuestion(docId: string, question: string, history: { ro
 
     Answer in Persian (RTL). Format as Markdown.`;
 
-    const result = await model.generateContent(prompt);
-    const response = result.response;
-    const text = response.text();
+  const contents = [
+    {
+      role: "user",
+      parts: [
+        {
+          text: prompt,
+        },
+      ],
+    },
+  ];
 
-    // 3. Save to History
-    await prisma.exam.create({
-        data: {
-            question,
-            answer: text,
-            references: JSON.stringify(["page 1"]), // Mock references
-            documentId: docId,
-            userId: "user_default"
-        }
-    });
+  const response = await ai.models.generateContentStream({
+    model,
+    config,
+    contents,
+  });
+  let text = "";
+  for await (const chunk of response) {
+    text += chunk.text;
+  }
 
-    return { answer: text };
+  // 3. Save to History
+  await prisma.exam.create({
+    data: {
+      question,
+      answer: text,
+      references: JSON.stringify(["page 1"]), // Mock references
+      documentId: docId,
+      userId: "user_default",
+    },
+  });
+
+  return { answer: text };
 }
