@@ -4,6 +4,8 @@ import { FileText, Trash2, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { revalidatePath } from 'next/cache';
 
+export const dynamic = 'force-dynamic';
+
 async function deleteDocument(formData: FormData) {
     'use server';
     const id = formData.get('id') as string;

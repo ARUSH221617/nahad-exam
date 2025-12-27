@@ -45,7 +45,6 @@ export async function uploadPDF(formData: FormData) {
       name: file.name,
       blobUrl: blobUrl,
       vectorNamespace: file.name + '_' + Date.now(),
-      userId: userId,
       user: {
           connectOrCreate: {
               where: { id: userId },
