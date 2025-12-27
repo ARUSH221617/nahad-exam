@@ -4,7 +4,7 @@ import { put } from '@vercel/blob';
 import { revalidatePath } from 'next/cache';
 import prisma from '@/lib/prisma';
 import { redirect } from 'next/navigation';
-import pdf from 'pdf-parse';
+import pdf from 'pdf-parse/lib/pdf-parse.js';
 import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
