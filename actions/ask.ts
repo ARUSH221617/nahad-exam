@@ -53,12 +53,8 @@ export async function askQuestion(
     apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
   });
 
-  const config = {
-    thinkingConfig: {
-      thinkingLevel: ThinkingLevel.MEDIUM,
-    },
-  };
-  const model = "gemini-2.0-flash";
+  const config = {};
+  const model = "gemini-2.5-flash";
 
   const prompt = `You are an expert in Nahad exams. Using ONLY the provided context from the PDF, answer the multiple-choice or descriptive question.
     If the answer is not in the context, say "پاسخ در متن یافت نشد".
