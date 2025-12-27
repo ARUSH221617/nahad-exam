@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import prisma from '@/lib/prisma';
 import { redirect } from 'next/navigation';
 import pdf from 'pdf-parse';
-import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
+import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // We cannot export constants from a 'use server' file that is imported by client components.
