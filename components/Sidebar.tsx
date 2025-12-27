@@ -1,11 +1,13 @@
+'use client';
+
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useRouter, usePathname } from 'next/navigation';
 
 const Sidebar: React.FC = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const router = useRouter();
+  const pathname = usePathname();
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => pathname === path;
 
   const navItems = [
     { name: 'Dashboard', icon: 'dashboard', path: '/' },
@@ -34,7 +36,7 @@ const Sidebar: React.FC = () => {
           {navItems.map((item) => (
             <button
               key={item.name}
-              onClick={() => navigate(item.path)}
+              onClick={() => router.push(item.path)}
               className={`group flex items-center gap-3 px-3 py-3 rounded-lg transition-colors w-full text-left ${
                 isActive(item.path)
                   ? 'bg-primary/10 text-primary'
@@ -59,7 +61,7 @@ const Sidebar: React.FC = () => {
           </button>
           
           <button 
-            onClick={() => navigate('/workspace')}
+            onClick={() => router.push('/workspace')}
             className="mt-4 flex w-full cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-12 bg-primary hover:bg-primary/90 text-white text-sm font-bold transition-all shadow-md shadow-primary/20"
           >
             <span className="material-symbols-outlined text-[20px]">add</span>

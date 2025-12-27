@@ -1,11 +1,13 @@
+'use client';
+
 import React from 'react';
-import { useLocation } from 'react-router-dom';
+import { usePathname } from 'next/navigation';
 
 const Header: React.FC = () => {
-  const location = useLocation();
+  const pathname = usePathname();
 
   const getTitle = () => {
-    switch(location.pathname) {
+    switch(pathname) {
       case '/': return 'Dashboard';
       case '/library': return 'Document Library';
       case '/workspace': return 'Exam Workspace';
