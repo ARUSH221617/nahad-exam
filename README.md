@@ -15,6 +15,14 @@ View your app in AI Studio: https://ai.studio/apps/drive/17jYzJVjYdKVXGTJSgBID1c
 
 1. Install dependencies:
    `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
+2. Set up Environment Variables:
+   - Create a `.env` file in the root directory.
+   - Set the `GEMINI_API_KEY` to your Gemini API key.
+   - Set the `POSTGRES_PRISMA_URL` to your PostgreSQL connection string.
+
+3. Setup the Database:
+   - Push the schema to your database:
+     `npx prisma db push`
+
+4. Run the app:
    `npm run dev`
