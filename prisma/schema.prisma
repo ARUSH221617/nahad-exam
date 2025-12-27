@@ -1,0 +1,37 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  exams     Exam[]
+  documents Document[]
+}
+
+model Document {
+  id         String   @id @default(cuid())
+  name       String
+  blobUrl    String
+  vectorNamespace String
+  createdAt  DateTime @default(now())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  exams      Exam[]
+}
+
+model Exam {
+  id          String   @id @default(cuid())
+  question    String
+  answer      String
+  references  String   // JSON string of source paragraphs/page numbers
+  documentId  String
+  document    Document @relation(fields: [documentId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+}
