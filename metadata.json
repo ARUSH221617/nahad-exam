@@ -1,0 +1,5 @@
+{
+  "name": "Nahad AI Exam Solver",
+  "description": "A specialized platform for university exam preparation using Advanced RAG to extract answers strictly from uploaded documents.",
+  "requestFramePermissions": []
+}
