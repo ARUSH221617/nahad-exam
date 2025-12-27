@@ -41,7 +41,7 @@ export async function askQuestion(docId: string, question: string, history: { ro
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-3.0-flash" });
 
     const prompt = `You are an expert in Nahad exams. Using ONLY the provided context from the PDF, answer the multiple-choice or descriptive question.
     If the answer is not in the context, say "پاسخ در متن یافت نشد".
