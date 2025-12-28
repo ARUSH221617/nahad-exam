@@ -58,9 +58,7 @@ export async function askQuestion(
   });
 
   const config = {};
-  const model = "gemini-1.5-flash"; // Switched to 1.5-flash as 2.5-flash might not be available yet or I should use standard ones.
-  // User had 2.5-flash in the mock, I'll stick to a known working model name or what was there if valid.
-  // Actually, let's use gemini-1.5-flash as it is definitely available.
+  const model = "gemini-2.5-flash";
 
   const prompt = `You are an expert in Nahad exams. Using ONLY the provided context from the PDF, answer the multiple-choice or descriptive question.
     If the answer is not in the context, say "پاسخ در متن یافت نشد".
