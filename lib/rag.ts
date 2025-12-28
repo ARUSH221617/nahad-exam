@@ -2,7 +2,7 @@ import { genAI } from "./ai";
 import prisma from "@/lib/prisma";
 
 // Use a fast model for contextualization
-const FAST_MODEL = "gemini-1.5-flash";
+const FAST_MODEL = "gemini-2.5-flash-lite";
 
 /**
  * Rewrites the latest user question based on the conversation history to make it standalone.
