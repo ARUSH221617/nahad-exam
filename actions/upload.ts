@@ -8,6 +8,7 @@ import pdf from "pdf-parse/lib/pdf-parse.js";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { generateEmbedding } from "@/lib/ai";
 import { Prisma } from "@prisma/client";
+import { createClient } from "@/lib/supabase/server";
 
 // We cannot export constants from a 'use server' file that is imported by client components.
 // We should move config to another file if needed, or just keep it internal.
@@ -18,8 +19,14 @@ import { Prisma } from "@prisma/client";
 const maxDuration = 60;
 
 export async function uploadPDF(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
   const file = formData.get("file") as File;
-  const userId = "user_default";
 
   if (!file) {
     throw new Error("No file uploaded");
@@ -41,12 +48,7 @@ export async function uploadPDF(formData: FormData) {
       name: file.name,
       blobUrl: blobUrl,
       vectorNamespace: file.name + "_" + Date.now(),
-      user: {
-        connectOrCreate: {
-          where: { id: userId },
-          create: { id: userId },
-        },
-      },
+      userId: user.id,
     },
   });
 
