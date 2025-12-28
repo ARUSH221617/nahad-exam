@@ -5,16 +5,36 @@ import { uploadPDF } from "@/actions/upload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Upload, Loader2 } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function UploadPage() {
   const [isUploading, setIsUploading] = useState(false);
+  const { toast } = useToast();
 
   const handleUpload = async (formData: FormData) => {
     setIsUploading(true);
+    const loadingToast = toast({
+      title: "Uploading...",
+      description: "Processing your PDF document.",
+      variant: "loading",
+    });
+
     try {
       await uploadPDF(formData);
+      loadingToast.dismiss();
+      toast({
+        title: "Success",
+        description: "PDF uploaded successfully.",
+        variant: "success",
+      });
     } catch (error) {
       console.error("Upload failed", error);
+      loadingToast.dismiss();
+      toast({
+        title: "Error",
+        description: "Failed to upload PDF.",
+        variant: "destructive",
+      });
     } finally {
       setIsUploading(false);
     }

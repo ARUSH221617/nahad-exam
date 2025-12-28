@@ -2,9 +2,18 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Send, ArrowLeft, Loader2 } from 'lucide-react';
+import { Send, ArrowLeft, Loader2, Archive, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { askQuestion } from '@/actions/ask';
+import { useToast } from "@/components/ui/use-toast";
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from "@/components/ui/sheet";
 
 interface Exam {
     id: string;
@@ -23,6 +32,7 @@ export default function WorkspaceClient({ doc, initialHistory }: { doc: Document
     const [question, setQuestion] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const { toast } = useToast();
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -49,7 +59,11 @@ export default function WorkspaceClient({ doc, initialHistory }: { doc: Document
             setQuestion("");
         } catch (error) {
             console.error(error);
-            alert("Failed to get answer");
+            toast({
+                title: "Error",
+                description: "Failed to get answer",
+                variant: "destructive",
+            });
         } finally {
             setIsLoading(false);
         }
@@ -65,6 +79,28 @@ export default function WorkspaceClient({ doc, initialHistory }: { doc: Document
                             <ArrowLeft className="w-4 h-4" />
                         </Button>
                     </Link>
+                    <Sheet>
+                        <SheetTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                                <Archive className="w-4 h-4" />
+                            </Button>
+                        </SheetTrigger>
+                        <SheetContent side="left">
+                            <SheetHeader>
+                                <SheetTitle>Attached Documents</SheetTitle>
+                                <SheetDescription>
+                                    List of documents attached to this session.
+                                </SheetDescription>
+                            </SheetHeader>
+                            <div className="mt-4 space-y-4">
+                                <div className="flex items-center gap-2 p-2 border rounded-md">
+                                    <FileText className="w-4 h-4 text-muted-foreground" />
+                                    <span className="text-sm truncate" title={doc.name}>{doc.name}</span>
+                                </div>
+                                {/* In the future, if multiple docs are supported, list them here */}
+                            </div>
+                        </SheetContent>
+                    </Sheet>
                     <h1 className="font-semibold truncate max-w-xs" title={doc.name}>{doc.name}</h1>
                 </div>
                 <div>
@@ -72,18 +108,9 @@ export default function WorkspaceClient({ doc, initialHistory }: { doc: Document
                 </div>
             </header>
 
-            <div className="flex flex-1 overflow-hidden">
-                {/* PDF Viewer Panel (Left) */}
-                <div className="w-1/2 border-r bg-muted/20 hidden md:block relative">
-                   <iframe
-                     src={doc.blobUrl}
-                     className="w-full h-full"
-                     title="PDF Viewer"
-                   />
-                </div>
-
-                {/* Chat / Solver Panel (Right) */}
-                <div className="w-full md:w-1/2 flex flex-col bg-background">
+            <div className="flex flex-1 overflow-hidden justify-center">
+                {/* Chat / Solver Panel (Center) */}
+                <div className="w-full max-w-3xl flex flex-col bg-background border-x">
                     <div className="flex-1 overflow-y-auto p-4 space-y-6">
                         {history.length === 0 && (
                             <div className="text-center text-muted-foreground mt-20">
