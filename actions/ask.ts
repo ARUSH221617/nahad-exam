@@ -111,6 +111,7 @@ export async function askQuestion(
   });
 
   let answerText = "";
+  let toolCalled = false;
 
   // Handle function calls
   // @ts-ignore
@@ -134,17 +135,18 @@ export async function askQuestion(
               });
 
               answerText = args.answer;
+              toolCalled = true;
           }
       }
   }
 
-  if (result.text) {
-      answerText = result.text;
-  }
-
-  if (!answerText && functionCalls && functionCalls.length > 0) {
-      const args = functionCalls[0].args as { answer: string };
-      answerText = args.answer;
+  // Only access result.text if we didn't handle a tool call.
+  // This prevents the warning "there are non-text parts functionCall in the response"
+  // which happens when accessing .text on a response with function calls.
+  if (!toolCalled && !answerText) {
+      if (result.text) {
+          answerText = result.text;
+      }
   }
 
   return { answer: answerText, references };
