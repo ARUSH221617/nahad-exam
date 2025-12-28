@@ -7,8 +7,8 @@ import { Toaster } from "@/components/ui/toaster";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Nahad AI Exam Solver",
-  description: "AI-powered exam solver for Nahad university",
+  title: "حل‌کننده آزمون هوشمند نهاد",
+  description: "حل‌کننده آزمون مبتنی بر هوش مصنوعی برای دانشگاه نهاد",
 };
 
 export default function RootLayout({

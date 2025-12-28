@@ -6,6 +6,8 @@ import { Send, ArrowLeft, Loader2, Archive, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { askQuestion } from '@/actions/ask';
 import { useToast } from "@/components/ui/use-toast";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
     Sheet,
     SheetContent,
@@ -60,8 +62,8 @@ export default function WorkspaceClient({ doc, initialHistory }: { doc: Document
         } catch (error) {
             console.error(error);
             toast({
-                title: "Error",
-                description: "Failed to get answer",
+                title: "خطا",
+                description: "دریافت پاسخ با شکست مواجه شد",
                 variant: "destructive",
             });
         } finally {
@@ -87,9 +89,9 @@ export default function WorkspaceClient({ doc, initialHistory }: { doc: Document
                         </SheetTrigger>
                         <SheetContent side="left">
                             <SheetHeader>
-                                <SheetTitle>Attached Documents</SheetTitle>
-                                <SheetDescription>
-                                    List of documents attached to this session.
+                                <SheetTitle className="text-right">اسناد ضمیمه شده</SheetTitle>
+                                <SheetDescription className="text-right">
+                                    لیست اسناد مرتبط با این نشست.
                                 </SheetDescription>
                             </SheetHeader>
                             <div className="mt-4 space-y-4">
@@ -114,7 +116,7 @@ export default function WorkspaceClient({ doc, initialHistory }: { doc: Document
                     <div className="flex-1 overflow-y-auto p-4 space-y-6">
                         {history.length === 0 && (
                             <div className="text-center text-muted-foreground mt-20">
-                                <p>Ask a question about the exam content.</p>
+                                <p>سوالی در مورد محتوای آزمون بپرسید.</p>
                             </div>
                         )}
 
@@ -130,8 +132,9 @@ export default function WorkspaceClient({ doc, initialHistory }: { doc: Document
                                 {/* AI Answer */}
                                 <div className="flex justify-start">
                                     <div className="bg-muted px-4 py-2 rounded-lg rounded-tr-none max-w-[90%] prose dark:prose-invert text-sm">
-                                        <div dangerouslySetInnerHTML={{ __html: item.answer.replace(/\n/g, '<br/>') }} />
-                                        {/* Note: In real app use ReactMarkdown */}
+                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                            {item.answer}
+                                        </ReactMarkdown>
                                     </div>
                                 </div>
                             </div>
@@ -140,7 +143,7 @@ export default function WorkspaceClient({ doc, initialHistory }: { doc: Document
                             <div className="flex justify-start">
                                 <div className="bg-muted px-4 py-2 rounded-lg rounded-tr-none flex items-center gap-2 text-muted-foreground">
                                     <Loader2 className="w-4 h-4 animate-spin" />
-                                    <span>Thinking...</span>
+                                    <span>در حال پردازش...</span>
                                 </div>
                             </div>
                         )}
@@ -152,7 +155,7 @@ export default function WorkspaceClient({ doc, initialHistory }: { doc: Document
                             <textarea
                                 value={question}
                                 onChange={(e) => setQuestion(e.target.value)}
-                                placeholder="Type your question here..."
+                                placeholder="سوال خود را اینجا بنویسید..."
                                 className="flex-1 min-h-[50px] max-h-[150px] p-2 border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary"
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter' && !e.shiftKey) {

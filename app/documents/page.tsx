@@ -31,15 +31,15 @@ export default async function DocumentsPage() {
   return (
     <div className="min-h-screen p-8 max-w-6xl mx-auto">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">My Documents</h1>
+        <h1 className="text-3xl font-bold">اسناد من</h1>
         <Link href="/upload">
-           <Button>Upload New</Button>
+           <Button>آپلود جدید</Button>
         </Link>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {documents.length === 0 ? (
-            <p className="text-muted-foreground col-span-3 text-center py-12">No documents found.</p>
+            <p className="text-muted-foreground col-span-3 text-center py-12">هیچ سندی یافت نشد.</p>
         ) : (
             documents.map(doc => (
                 <div key={doc.id} className="border rounded-lg p-4 bg-card shadow-sm hover:shadow-md transition-shadow">
@@ -53,7 +53,7 @@ export default async function DocumentsPage() {
                     </p>
                     <Link href={`/exam/${doc.id}`} className="block">
                         <Button variant="outline" className="w-full">
-                            Open Solver <ExternalLink className="w-4 h-4 ml-2" />
+                            باز کردن حل‌کننده <ExternalLink className="w-4 h-4 mr-2" />
                         </Button>
                     </Link>
                 </div>
