@@ -31,7 +31,7 @@ model DocumentChunk {
   content    String
   embedding  Unsupported("vector")
   documentId String
-  document   Document @relation(fields: [documentId], references: [id])
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
   createdAt  DateTime @default(now())
 }
 
@@ -41,7 +41,7 @@ model Exam {
   answer     String
   references String // JSON string of source paragraphs/page numbers
   documentId String
-  document   Document @relation(fields: [documentId], references: [id])
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
   userId     String
   user       User     @relation(fields: [userId], references: [id])
   createdAt  DateTime @default(now())
