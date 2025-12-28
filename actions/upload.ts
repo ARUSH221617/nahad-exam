@@ -126,7 +126,11 @@ Make sure to handle Persian language correctly (RTL).`,
     contents,
   });
 
-  const responseText = response.text();
+  if (!response) {
+    throw new Error("No response from Gemini");
+  }
+
+  const responseText = response.text;
   if (!responseText) {
     throw new Error("Empty response from Gemini");
   }
