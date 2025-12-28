@@ -6,7 +6,7 @@ if (!apiKey) {
   throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is not set");
 }
 
-const genAI = new GoogleGenAI({ apiKey });
+export const genAI = new GoogleGenAI({ apiKey });
 
 export async function generateEmbedding(text: string): Promise<number[]> {
   try {
@@ -19,7 +19,6 @@ export async function generateEmbedding(text: string): Promise<number[]> {
       ],
     });
 
-    // The TS error suggests 'embeddings' instead of 'embedding'
     if (result && result.embeddings && result.embeddings.length > 0 && result.embeddings[0].values) {
        return result.embeddings[0].values;
     }

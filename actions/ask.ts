@@ -4,6 +4,7 @@ import { GoogleGenAI, FunctionCallingConfigMode, Type } from "@google/genai";
 import prisma from "@/lib/prisma";
 import { generateEmbedding } from "@/lib/ai";
 import { createClient } from "@/lib/supabase/server";
+import { contextualizeQuestion, hybridSearch } from "@/lib/rag";
 
 export async function askQuestion(
   docId: string,
@@ -21,18 +22,15 @@ export async function askQuestion(
 
   if (!doc) throw new Error("Document not found");
 
-  // Generate embedding for the question
-  const questionEmbedding = await generateEmbedding(question);
-  const embeddingString = `[${questionEmbedding.join(",")}]`;
+  // --- Advanced RAG: Contextualize Question ---
+  const standaloneQuestion = await contextualizeQuestion(question, history);
+  console.log(`Contextualized Question: "${standaloneQuestion}" (Original: "${question}")`);
 
-  // Search for relevant chunks
-  const chunks = await prisma.$queryRaw<Array<{ content: string; similarity: number }>>`
-    SELECT content, 1 - (embedding <=> ${embeddingString}::vector) as similarity
-    FROM "DocumentChunk"
-    WHERE "documentId" = ${docId}
-    ORDER BY embedding <=> ${embeddingString}::vector
-    LIMIT 5;
-  `;
+  // Generate embedding for the standalone question
+  const questionEmbedding = await generateEmbedding(standaloneQuestion);
+
+  // --- Advanced RAG: Hybrid Search ---
+  const chunks = await hybridSearch(docId, standaloneQuestion, questionEmbedding);
 
   const context = chunks.map((c) => c.content).join("\n\n");
   const references = chunks.map((c, i) => `Source ${i+1}: ${c.content.substring(0, 50)}...`);
@@ -47,7 +45,7 @@ export async function askQuestion(
   }
 
   const ai = new GoogleGenAI({ apiKey });
-  const model = "gemini-2.5-flash-lite"; // Supports function calling well
+  const model = "gemini-1.5-flash"; // Supports function calling well
 
   // Define the tool
   const saveExamTool = {
@@ -76,21 +74,23 @@ export async function askQuestion(
     },
   };
 
-  const prompt = `You are an expert in Nahad exams. Using ONLY the provided context from the PDF, answer the user's question.
+  // Improved Prompt for "Advanced RAG"
+  // Encourages reasoning and strict adherence to context.
+  const prompt = `You are an expert in Nahad exams.
     Context:
     ${context}
 
-    Question: ${question}
+    User Question: ${standaloneQuestion}
 
     Instructions:
-    1. Answer the question in Persian (RTL). Format as Markdown.
-    2. If the user's input is a question about the content, provide the answer.
-    3. IMPORTANT: After answering, if you have successfully answered a valid question, YOU MUST CALL the "save_exam_result" function to save the record.
-    4. If the user is just saying hello or the input is not a question, do not call the save function.
-    5. If the answer is not in the context, say "پاسخ در متن یافت نشد" and do not save.
+    1. Read the provided context carefully.
+    2. Think step-by-step: Does the context contain the answer to the User Question?
+    3. If yes, formulate a clear, comprehensive answer in Persian (RTL) using Markdown.
+    4. If the context does not contain the answer, state "پاسخ در متن یافت نشد" (Answer not found in text) and do NOT call the save tool.
+    5. If you successfully answered the question using the context, you MUST call the "save_exam_result" tool to save it.
+    6. If the user input is not a question (e.g. greeting), just reply politely in Persian and do not call the tool.
 
-    If you call the tool, the system will execute it. Your final response should be the answer text.
-    `;
+    Begin!`;
 
   const contents = [
     ...history.map(h => ({ role: h.role === 'user' ? 'user' : 'model', parts: [{ text: h.parts.join('') }] })),
@@ -104,8 +104,6 @@ export async function askQuestion(
     },
   ];
 
-  // We need to handle potential multi-turn if tool is called.
-  // GenerateContent (non-stream) is easier for function calling handling in this one-shot wrapper.
   const result = await ai.models.generateContent({
     model,
     config,
@@ -140,28 +138,11 @@ export async function askQuestion(
       }
   }
 
-  // If the model didn't call the function (e.g. casual chat), or returned text alongside tool call.
-  // Usually if tool is called, the model expects tool output.
-  // But here we just want to ensure we get the text to display.
-  // 'result.text' might be empty if it only called a function.
-  // The 'save_exam_result' arg has the answer, so we used that.
-
-  // However, often the model generates text AND calls the function, or just calls the function.
-  // If result.text is present, use it. If not, and we have answer from tool arg, use that.
-
   if (result.text) {
       answerText = result.text;
   }
 
-  // If we processed a save, we ensure answerText is set.
-  // If we didn't save, answerText comes from result.text.
-
-  // Note: Standard function calling flow requires sending tool output back to model.
-  // But here we are using it as a "side effect" trigger.
-  // If the model *only* returned a function call, we need to extract the answer from the arguments to show to the user.
-
   if (!answerText && functionCalls && functionCalls.length > 0) {
-      // The model put the answer in the function arguments
       const args = functionCalls[0].args as { answer: string };
       answerText = args.answer;
   }
