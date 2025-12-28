@@ -4,17 +4,9 @@ import { put } from "@vercel/blob";
 import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
-import pdf from "pdf-parse/lib/pdf-parse.js";
-import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
+import { GoogleGenAI, Type } from "@google/genai";
 import { generateEmbedding } from "@/lib/ai";
-import { Prisma } from "@prisma/client";
 import { createClient } from "@/lib/supabase/server";
-
-// We cannot export constants from a 'use server' file that is imported by client components.
-// We should move config to another file if needed, or just keep it internal.
-// If Next.js Route Config needs it, it should be in page.tsx or route.ts, not in the action file.
-// But this is a server action file.
-// I will just remove the export.
 
 const maxDuration = 60;
 
@@ -59,6 +51,8 @@ export async function uploadPDF(formData: FormData) {
     await ingestDocument(doc.id, buffer, doc.vectorNamespace);
   } catch (e) {
     console.error("Ingestion failed:", e);
+    // Note: We don't delete the document here so the user can see it failed or try again.
+    // But maybe we should? For now keeping existing behavior.
   }
 
   revalidatePath("/documents");
@@ -70,38 +64,109 @@ async function ingestDocument(
   pdfBuffer: Buffer,
   namespace: string
 ) {
-  const data = await pdf(pdfBuffer);
-  const text = data.text;
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+  if (!apiKey) {
+    throw new Error("Missing GEMINI_API_KEY or GOOGLE_GENERATIVE_AI_API_KEY");
+  }
 
-  const splitter = new RecursiveCharacterTextSplitter({
-    chunkSize: 1000,
-    chunkOverlap: 200,
+  const ai = new GoogleGenAI({ apiKey });
+
+  // Use gemini-2.0-flash-exp as it is available and supports JSON mode well.
+  const model = "gemini-2.0-flash-exp";
+
+  const config = {
+    responseMimeType: "application/json",
+    responseSchema: {
+      type: Type.OBJECT,
+      required: ["subject", "paragraphs", "language"],
+      properties: {
+        subject: {
+          type: Type.STRING,
+        },
+        paragraphs: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.STRING,
+          },
+        },
+        language: {
+          type: Type.STRING,
+        },
+      },
+    },
+    systemInstruction: [
+      {
+        text: `you are a high level content extractor
+user give you a pdf and you must extract content and split paragraphs
+and detect language of content.
+Make sure to handle Persian language correctly (RTL).`,
+      },
+    ],
+  };
+
+  const contents = [
+    {
+      role: "user",
+      parts: [
+        {
+          inlineData: {
+            data: pdfBuffer.toString("base64"),
+            mimeType: "application/pdf",
+          },
+        },
+      ],
+    },
+  ];
+
+  console.log(`Sending PDF to Gemini (${model}) for parsing...`);
+
+  const response = await ai.models.generateContent({
+    model,
+    config,
+    contents,
   });
-  const chunks = await splitter.createDocuments([text]);
 
-  console.log(`Ingesting ${chunks.length} chunks for doc ${docId}`);
+  if (!response) {
+    throw new Error("No response from Gemini");
+  }
+
+  const responseText = response.text;
+  if (!responseText) {
+    throw new Error("Empty response from Gemini");
+  }
+
+  let content;
+  try {
+    content = JSON.parse(responseText);
+  } catch (e) {
+    console.error("Failed to parse Gemini response as JSON:", responseText);
+    throw new Error("Invalid JSON response from Gemini");
+  }
+
+  const paragraphs = content.paragraphs;
+  if (!Array.isArray(paragraphs)) {
+    throw new Error("Response 'paragraphs' is not an array");
+  }
+
+  console.log(`Ingesting ${paragraphs.length} paragraphs for doc ${docId}`);
 
   // Process chunks in batches to avoid overwhelming the database or API
   const BATCH_SIZE = 10;
-  for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
-    const batch = chunks.slice(i, i + BATCH_SIZE);
+  for (let i = 0; i < paragraphs.length; i += BATCH_SIZE) {
+    const batch = paragraphs.slice(i, i + BATCH_SIZE);
 
     // Generate embeddings and save to DB
     await Promise.all(
-      batch.map(async (chunk) => {
+      batch.map(async (text: string) => {
+        if (!text || text.trim().length === 0) return;
+
         try {
-          const embedding = await generateEmbedding(chunk.pageContent);
-
-          // Use Prisma raw query to insert vector data because Prisma Client doesn't support vector type directly yet (as a typed field)
-          // Wait, Prisma now supports Unsupported types, but we might need raw query to insert the vector array properly casted.
-          // Actually, let's try to use $executeRaw to insert.
-
-          // Format embedding array for SQL: '[0.1, 0.2, ...]'
+          const embedding = await generateEmbedding(text);
           const embeddingString = `[${embedding.join(",")}]`;
 
           await prisma.$executeRaw`
             INSERT INTO "DocumentChunk" ("id", "content", "embedding", "documentId", "createdAt")
-            VALUES (gen_random_uuid(), ${chunk.pageContent}, ${embeddingString}::vector, ${docId}, NOW())
+            VALUES (gen_random_uuid(), ${text}, ${embeddingString}::vector, ${docId}, NOW())
           `;
         } catch (err) {
           console.error("Error processing chunk:", err);
