@@ -58,7 +58,7 @@ export async function askQuestion(
   });
 
   const config = {};
-  const model = "gemini-2.5-flash";
+  const model = "gemini-2.5-flash-lite";
 
   const prompt = `You are an expert in Nahad exams. Using ONLY the provided context from the PDF, answer the multiple-choice or descriptive question.
     If the answer is not in the context, say "پاسخ در متن یافت نشد".

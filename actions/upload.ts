@@ -71,8 +71,8 @@ async function ingestDocument(
 
   const ai = new GoogleGenAI({ apiKey });
 
-  // Use gemini-2.0-flash-exp as it is available and supports JSON mode well.
-  const model = "gemini-2.0-flash-exp";
+  // Use gemini-3.0-flash as it is available and supports JSON mode well.
+  const model = "gemini-2.5-flash-lite";
 
   const config = {
     responseMimeType: "application/json",

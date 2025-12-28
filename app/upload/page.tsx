@@ -26,7 +26,12 @@ export default function UploadPage() {
 
       <div className="w-full max-w-md p-8 border-2 border-dashed rounded-xl flex flex-col items-center justify-center bg-card">
         <form
-          action={handleUpload}
+          onSubmit={async (e) => {
+            e.preventDefault();
+            const form = e.currentTarget as HTMLFormElement;
+            const formData = new FormData(form);
+            await handleUpload(formData);
+          }}
           className="flex flex-col items-center w-full"
         >
           <Upload className="w-16 h-16 text-muted-foreground mb-4" />
