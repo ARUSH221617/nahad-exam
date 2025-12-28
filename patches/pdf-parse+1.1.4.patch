@@ -1,0 +1,39 @@
+diff --git a/node_modules/pdf-parse/lib/pdf-parse.js b/node_modules/pdf-parse/lib/pdf-parse.js
+index b286d9e..38023d7 100644
+--- a/node_modules/pdf-parse/lib/pdf-parse.js
++++ b/node_modules/pdf-parse/lib/pdf-parse.js
+@@ -39,7 +39,7 @@ const DEFAULT_OPTIONS = {
+     pagerender: render_page,
+     max: 0,
+     //check https://mozilla.github.io/pdf.js/getting_started/
+-    version: 'v1.10.100'
++    version: 'v2.0.550'
+ }
+
+ async function PDF(dataBuffer, options) {
+diff --git a/node_modules/pdf-parse/lib/pdf.js/v1.10.100/build/pdf.js b/node_modules/pdf-parse/lib/pdf.js/v1.10.100/build/pdf.js
+index d355798..846fc73 100644
+--- a/node_modules/pdf-parse/lib/pdf.js/v1.10.100/build/pdf.js
++++ b/node_modules/pdf-parse/lib/pdf.js/v1.10.100/build/pdf.js
+@@ -6993,7 +6993,7 @@ var SVGGraphics = function SVGGraphics() {
+         if (parseInt(process.versions.node) >= 8) {
+           input = literals;
+         } else {
+-          input = new Buffer(literals);
++          input = Buffer.from(literals);
+         }
+         var output = require('zlib').deflateSync(input, { level: 9 });
+         return output instanceof Uint8Array ? output : new Uint8Array(output);
+diff --git a/node_modules/pdf-parse/lib/pdf.js/v2.0.550/build/pdf.js b/node_modules/pdf-parse/lib/pdf.js/v2.0.550/build/pdf.js
+index ff861a4..cf9df24 100644
+--- a/node_modules/pdf-parse/lib/pdf.js/v2.0.550/build/pdf.js
++++ b/node_modules/pdf-parse/lib/pdf.js/v2.0.550/build/pdf.js
+@@ -15213,7 +15213,7 @@ var SVGGraphics = function SVGGraphics() {
+         if (parseInt(process.versions.node) >= 8) {
+           input = literals;
+         } else {
+-          input = new Buffer(literals);
++          input = Buffer.from(literals);
+         }
+         var output = require('zlib').deflateSync(input, { level: 9 });
+         return output instanceof Uint8Array ? output : new Uint8Array(output);
