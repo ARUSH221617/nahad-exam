@@ -15,24 +15,34 @@ model User {
 }
 
 model Document {
-  id         String   @id @default(cuid())
-  name       String
-  blobUrl    String
+  id              String          @id @default(cuid())
+  name            String
+  blobUrl         String
   vectorNamespace String
+  createdAt       DateTime        @default(now())
+  userId          String
+  user            User            @relation(fields: [userId], references: [id])
+  exams           Exam[]
+  chunks          DocumentChunk[]
+}
+
+model DocumentChunk {
+  id         String   @id @default(uuid())
+  content    String
+  embedding  Unsupported("vector")
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id])
   createdAt  DateTime @default(now())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id])
-  exams      Exam[]
 }
 
 model Exam {
-  id          String   @id @default(cuid())
-  question    String
-  answer      String
-  references  String   // JSON string of source paragraphs/page numbers
-  documentId  String
-  document    Document @relation(fields: [documentId], references: [id])
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  createdAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  question   String
+  answer     String
+  references String // JSON string of source paragraphs/page numbers
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id])
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  createdAt  DateTime @default(now())
 }
