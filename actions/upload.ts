@@ -6,6 +6,8 @@ import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import pdf from "pdf-parse/lib/pdf-parse.js";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
+import { generateEmbedding } from "@/lib/ai";
+import { Prisma } from "@prisma/client";
 
 // We cannot export constants from a 'use server' file that is imported by client components.
 // We should move config to another file if needed, or just keep it internal.
@@ -76,4 +78,33 @@ async function ingestDocument(
   const chunks = await splitter.createDocuments([text]);
 
   console.log(`Ingesting ${chunks.length} chunks for doc ${docId}`);
+
+  // Process chunks in batches to avoid overwhelming the database or API
+  const BATCH_SIZE = 10;
+  for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
+    const batch = chunks.slice(i, i + BATCH_SIZE);
+
+    // Generate embeddings and save to DB
+    await Promise.all(
+      batch.map(async (chunk) => {
+        try {
+          const embedding = await generateEmbedding(chunk.pageContent);
+
+          // Use Prisma raw query to insert vector data because Prisma Client doesn't support vector type directly yet (as a typed field)
+          // Wait, Prisma now supports Unsupported types, but we might need raw query to insert the vector array properly casted.
+          // Actually, let's try to use $executeRaw to insert.
+
+          // Format embedding array for SQL: '[0.1, 0.2, ...]'
+          const embeddingString = `[${embedding.join(",")}]`;
+
+          await prisma.$executeRaw`
+            INSERT INTO "DocumentChunk" ("id", "content", "embedding", "documentId", "createdAt")
+            VALUES (gen_random_uuid(), ${chunk.pageContent}, ${embeddingString}::vector, ${docId}, NOW())
+          `;
+        } catch (err) {
+          console.error("Error processing chunk:", err);
+        }
+      })
+    );
+  }
 }
