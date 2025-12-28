@@ -4,12 +4,9 @@ import { put } from "@vercel/blob";
 import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
-import { GoogleGenAI, ThinkingLevel, Type } from "@google/genai";
 import { generateEmbedding } from "@/lib/ai";
 import { createClient } from "@/lib/supabase/server";
 import { Prisma } from "@prisma/client";
-
-const maxDuration = 60;
 
 export async function uploadPDF(formData: FormData) {
   const supabase = await createClient();
@@ -46,14 +43,11 @@ export async function uploadPDF(formData: FormData) {
   });
 
   try {
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    await ingestDocument(doc.id, buffer, doc.vectorNamespace);
+    // We pass the blobUrl directly to ingestDocument, which will call the Appwrite OCR function
+    await ingestDocument(doc.id, blobUrl, doc.vectorNamespace);
   } catch (e) {
     console.error("Ingestion failed:", e);
     // Note: We don't delete the document here so the user can see it failed or try again.
-    // But maybe we should? For now keeping existing behavior.
   }
 
   revalidatePath("/documents");
@@ -62,90 +56,34 @@ export async function uploadPDF(formData: FormData) {
 
 async function ingestDocument(
   docId: string,
-  pdfBuffer: Buffer,
+  blobUrl: string,
   namespace: string
 ) {
-  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-  if (!apiKey) {
-    throw new Error("Missing GEMINI_API_KEY or GOOGLE_GENERATIVE_AI_API_KEY");
+  const ocrFunctionUrl = process.env.OCR_FUNCTION_URL;
+  if (!ocrFunctionUrl) {
+    throw new Error("Missing OCR_FUNCTION_URL environment variable");
   }
 
-  const ai = new GoogleGenAI({ apiKey });
+  console.log(`Calling OCR function at ${ocrFunctionUrl} for ${blobUrl}`);
 
-  // Use gemini-3.0-flash as it is available and supports JSON mode well.
-  const model = "gemini-3-flash-preview";
-
-  const config = {
-    thinkingConfig: {
-      thinkingLevel: ThinkingLevel.MINIMAL,
+  const response = await fetch(ocrFunctionUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
     },
-    responseMimeType: "application/json",
-    responseSchema: {
-      type: Type.OBJECT,
-      required: ["subject", "paragraphs", "language"],
-      properties: {
-        subject: {
-          type: Type.STRING,
-        },
-        paragraphs: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.STRING,
-          },
-        },
-        language: {
-          type: Type.STRING,
-        },
-      },
-    },
-    systemInstruction: [
-      {
-        text: `you are a high level content extractor
-user give you a pdf and you must extract content and split paragraphs
-and detect language of content.
-Make sure to handle Persian language correctly (RTL).`,
-      },
-    ],
-  };
-
-  const contents = [
-    {
-      role: "user",
-      parts: [
-        {
-          inlineData: {
-            data: pdfBuffer.toString("base64"),
-            mimeType: "application/pdf",
-          },
-        },
-      ],
-    },
-  ];
-
-  console.log(`Sending PDF to Gemini (${model}) for parsing...`);
-
-  const response = await ai.models.generateContent({
-    model,
-    config,
-    contents,
+    body: JSON.stringify({
+      fileUrl: blobUrl,
+      mimeType: "application/pdf",
+    }),
   });
 
-  if (!response) {
-    throw new Error("No response from Gemini");
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`OCR function failed with status ${response.status}: ${errorText}`);
+    throw new Error(`OCR function failed: ${response.statusText}`);
   }
 
-  const responseText = response.text;
-  if (!responseText) {
-    throw new Error("Empty response from Gemini");
-  }
-
-  let content;
-  try {
-    content = JSON.parse(responseText);
-  } catch (e) {
-    console.error("Failed to parse Gemini response as JSON:", responseText);
-    throw new Error("Invalid JSON response from Gemini");
-  }
+  const content = await response.json();
 
   const paragraphs = content.paragraphs;
   if (!Array.isArray(paragraphs)) {
@@ -161,7 +99,6 @@ Make sure to handle Persian language correctly (RTL).`,
 
     try {
       // 1. Generate embeddings for the batch
-      // Currently generating sequentially or concurrently for embedding API
       // Since generateEmbedding is a single call, we can run them in parallel
       const embeddings = await Promise.all(
         batch.map(async (text: string) => {
