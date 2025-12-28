@@ -4,7 +4,7 @@ import { put } from "@vercel/blob";
 import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, ThinkingLevel, Type } from "@google/genai";
 import { generateEmbedding } from "@/lib/ai";
 import { createClient } from "@/lib/supabase/server";
 
@@ -72,9 +72,12 @@ async function ingestDocument(
   const ai = new GoogleGenAI({ apiKey });
 
   // Use gemini-3.0-flash as it is available and supports JSON mode well.
-  const model = "gemini-2.5-flash-lite";
+  const model = "gemini-3-flash-preview";
 
   const config = {
+    thinkingConfig: {
+      thinkingLevel: ThinkingLevel.MINIMAL,
+    },
     responseMimeType: "application/json",
     responseSchema: {
       type: Type.OBJECT,
