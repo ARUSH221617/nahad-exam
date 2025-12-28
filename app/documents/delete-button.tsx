@@ -31,8 +31,8 @@ export function DeleteButton({ id, onDelete }: DeleteButtonProps) {
         setIsLoading(true);
         // Show loading toast
         const loadingToast = toast({
-            title: "Deleting document...",
-            description: "Please wait.",
+            title: "در حال حذف سند...",
+            description: "لطفا صبر کنید.",
             variant: "loading",
         });
 
@@ -41,8 +41,8 @@ export function DeleteButton({ id, onDelete }: DeleteButtonProps) {
             // Dismiss loading toast and show success
             loadingToast.dismiss();
             toast({
-                title: "Document deleted",
-                description: "The document has been successfully deleted.",
+                title: "سند حذف شد",
+                description: "سند با موفقیت حذف شد.",
                 variant: "success",
             });
             setOpen(false);
@@ -50,8 +50,8 @@ export function DeleteButton({ id, onDelete }: DeleteButtonProps) {
             // Dismiss loading toast and show error
             loadingToast.dismiss();
             toast({
-                title: "Error",
-                description: "Failed to delete document.",
+                title: "خطا",
+                description: "حذف سند با شکست مواجه شد.",
                 variant: "destructive",
             });
         } finally {
@@ -68,14 +68,13 @@ export function DeleteButton({ id, onDelete }: DeleteButtonProps) {
             </AlertDialogTrigger>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete your document
-                        and remove your data from our servers.
+                    <AlertDialogTitle className="text-right">آیا کاملاً مطمئن هستید؟</AlertDialogTitle>
+                    <AlertDialogDescription className="text-right">
+                        این عمل قابل بازگشت نیست. این کار سند شما را برای همیشه حذف کرده و داده‌های شما را از سرورهای ما پاک می‌کند.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
+                <AlertDialogFooter className="sm:justify-start">
+                    <AlertDialogCancel disabled={isLoading}>انصراف</AlertDialogCancel>
                     <AlertDialogAction
                         onClick={(e) => {
                             e.preventDefault();
@@ -84,8 +83,8 @@ export function DeleteButton({ id, onDelete }: DeleteButtonProps) {
                         disabled={isLoading}
                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     >
-                        {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                        Delete
+                        {isLoading ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : null}
+                        حذف
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
