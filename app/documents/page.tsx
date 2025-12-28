@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { FileText, Trash2, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { revalidatePath } from 'next/cache';
+import { createClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +16,15 @@ async function deleteDocument(formData: FormData) {
 }
 
 export default async function DocumentsPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
   const documents = await prisma.document.findMany({
+      where: { userId: user.id },
       orderBy: { createdAt: 'desc' }
   });
 

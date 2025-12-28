@@ -3,12 +3,17 @@
 import { GoogleGenAI } from "@google/genai";
 import prisma from "@/lib/prisma";
 import { generateEmbedding } from "@/lib/ai";
+import { createClient } from "@/lib/supabase/server";
 
 export async function askQuestion(
   docId: string,
   question: string,
   history: { role: string; parts: string[] }[]
 ) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id ?? "anonymous";
+
   // 1. Retrieve context
   const doc = await prisma.document.findUnique({
     where: { id: docId },
@@ -100,7 +105,7 @@ export async function askQuestion(
       answer: text,
       references: JSON.stringify(references),
       documentId: docId,
-      userId: "user_default",
+      userId: userId,
     },
   });
 

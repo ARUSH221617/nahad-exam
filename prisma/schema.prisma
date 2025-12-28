@@ -8,12 +8,6 @@ generator client {
   provider = "prisma-client-js"
 }
 
-model User {
-  id        String   @id @default(cuid())
-  exams     Exam[]
-  documents Document[]
-}
-
 model Document {
   id              String          @id @default(cuid())
   name            String
@@ -21,7 +15,6 @@ model Document {
   vectorNamespace String
   createdAt       DateTime        @default(now())
   userId          String
-  user            User            @relation(fields: [userId], references: [id])
   exams           Exam[]
   chunks          DocumentChunk[]
 }
@@ -43,6 +36,5 @@ model Exam {
   documentId String
   document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
   userId     String
-  user       User     @relation(fields: [userId], references: [id])
   createdAt  DateTime @default(now())
 }
