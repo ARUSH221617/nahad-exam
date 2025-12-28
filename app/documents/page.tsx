@@ -1,16 +1,16 @@
 import prisma from '@/lib/prisma';
 import Link from 'next/link';
-import { FileText, Trash2, ExternalLink } from 'lucide-react';
+import { FileText, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import { DeleteButton } from './delete-button';
 
 export const dynamic = 'force-dynamic';
 
-async function deleteDocument(formData: FormData) {
+async function deleteDocumentAction(id: string) {
     'use server';
-    const id = formData.get('id') as string;
     await prisma.document.delete({ where: { id } });
     revalidatePath('/documents');
 }
@@ -45,12 +45,7 @@ export default async function DocumentsPage() {
                 <div key={doc.id} className="border rounded-lg p-4 bg-card shadow-sm hover:shadow-md transition-shadow">
                     <div className="flex items-start justify-between mb-4">
                         <FileText className="w-8 h-8 text-primary" />
-                        <form action={deleteDocument}>
-                            <input type="hidden" name="id" value={doc.id} />
-                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                                <Trash2 className="w-4 h-4" />
-                            </Button>
-                        </form>
+                        <DeleteButton id={doc.id} onDelete={deleteDocumentAction} />
                     </div>
                     <h3 className="font-semibold truncate mb-2" title={doc.name}>{doc.name}</h3>
                     <p className="text-xs text-muted-foreground mb-4">
