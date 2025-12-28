@@ -1,20 +1,20 @@
 import prisma from '@/lib/prisma';
 import { notFound } from 'next/navigation';
-import WorkspaceClient from './client'; // Client component for interactivity
+import ExamOverviewClient from './client-overview';
 
 export const dynamic = 'force-dynamic';
 
-export default async function ExamPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ExamOverviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
   const doc = await prisma.document.findUnique({
     where: { id },
-    include: { exams: { orderBy: { createdAt: 'asc' } } }
+    include: { exams: { orderBy: { createdAt: 'desc' } } } // Order by desc for recent list
   });
 
   if (!doc) {
     notFound();
   }
 
-  return <WorkspaceClient doc={doc} initialHistory={doc.exams} />;
+  return <ExamOverviewClient doc={doc} exams={doc.exams} />;
 }

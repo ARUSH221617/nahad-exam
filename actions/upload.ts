@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { GoogleGenAI, ThinkingLevel, Type } from "@google/genai";
 import { generateEmbedding } from "@/lib/ai";
 import { createClient } from "@/lib/supabase/server";
+import { Prisma } from "@prisma/client";
 
 const maxDuration = 60;
 
@@ -158,23 +159,42 @@ Make sure to handle Persian language correctly (RTL).`,
   for (let i = 0; i < paragraphs.length; i += BATCH_SIZE) {
     const batch = paragraphs.slice(i, i + BATCH_SIZE);
 
-    // Generate embeddings and save to DB
-    await Promise.all(
-      batch.map(async (text: string) => {
-        if (!text || text.trim().length === 0) return;
+    try {
+      // 1. Generate embeddings for the batch
+      // Currently generating sequentially or concurrently for embedding API
+      // Since generateEmbedding is a single call, we can run them in parallel
+      const embeddings = await Promise.all(
+        batch.map(async (text: string) => {
+          if (!text || text.trim().length === 0) return null;
+          return generateEmbedding(text);
+        })
+      );
 
-        try {
-          const embedding = await generateEmbedding(text);
-          const embeddingString = `[${embedding.join(",")}]`;
+      // 2. Filter out nulls (empty texts)
+      const validItems = batch
+        .map((text, idx) => ({ text, embedding: embeddings[idx] }))
+        .filter((item) => item.text && item.text.trim().length > 0 && item.embedding !== null) as { text: string, embedding: number[] }[];
 
-          await prisma.$executeRaw`
-            INSERT INTO "DocumentChunk" ("id", "content", "embedding", "documentId", "createdAt")
-            VALUES (gen_random_uuid(), ${text}, ${embeddingString}::vector, ${docId}, NOW())
-          `;
-        } catch (err) {
-          console.error("Error processing chunk:", err);
-        }
-      })
-    );
+      if (validItems.length === 0) continue;
+
+      // 3. Construct batch insert query
+      // We use Prisma.sql to compose the query safely
+      const values = validItems.map((item) => {
+        const embeddingString = `[${item.embedding.join(",")}]`;
+        // We need to return a Sql object for each row
+        return Prisma.sql`
+          (gen_random_uuid(), ${item.text}, ${embeddingString}::vector, ${docId}, NOW())
+        `;
+      });
+
+      await prisma.$executeRaw`
+        INSERT INTO "DocumentChunk" ("id", "content", "embedding", "documentId", "createdAt")
+        VALUES ${Prisma.join(values, ",")}
+      `;
+
+      console.log(`Inserted batch of ${validItems.length} chunks.`);
+    } catch (err) {
+      console.error("Error processing batch:", err);
+    }
   }
 }
